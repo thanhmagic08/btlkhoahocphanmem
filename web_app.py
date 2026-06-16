@@ -13,8 +13,8 @@ import math
 # =========================================================================
 # ⚠️ CẤU HÌNH GMAIL GỬI TIN (THAY THÔNG TIN CỦA BẠN VÀO ĐÂY)
 # =========================================================================
-SENDER_EMAIL = "chuyen_email_cua_ban_vao_day@gmail.com" 
-SENDER_PASSWORD = "abcdefghijklmnop"  # 16 ký tự mật khẩu ứng dụng Google
+SENDER_EMAIL = "phamduythanh0666@gmail.com" 
+SENDER_PASSWORD = "phamduythanh08122006"  # 16 ký tự mật khẩu ứng dụng Google
 
 def send_real_gmail(receiver_email, subject, body):
     try:
