@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
@@ -11,21 +12,32 @@ from streamlit_folium import st_folium
 import math
 
 # =========================================================================
-# ⚠️ CẤU HÌNH GMAIL GỬI TIN (THAY THÔNG TIN CỦA BẠN VÀO ĐÂY)
+# ⚠️ CẤU HÌNH GMAIL GỬI TIN TRÊN GITHUB/STREAMLIT CLOUD
 # =========================================================================
-SENDER_EMAIL = "phamduythanh0666@gmail.com" 
-SENDER_PASSWORD = "phamduythanh08122006"  # 16 ký tự mật khẩu ứng dụng Google
+SENDER_EMAIL = os.environ.get("EMAIL_SENDER", "").strip()
+SENDER_PASSWORD = os.environ.get("EMAIL_PASSWORD", "").strip()
+
+
+def is_email_configured():
+    return bool(SENDER_EMAIL and SENDER_PASSWORD)
+
 
 def send_real_gmail(receiver_email, subject, body):
+    if not is_email_configured():
+        st.warning(
+            "📧 Chức năng gửi email chưa được cấu hình. Vui lòng đặt biến môi trường EMAIL_SENDER và EMAIL_PASSWORD."
+        )
+        return False
+
     try:
         msg = MIMEMultipart()
         msg['From'] = SENDER_EMAIL
         msg['To'] = receiver_email
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
-        
+
         server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()  
+        server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         text = msg.as_string()
         server.sendmail(SENDER_EMAIL, receiver_email, text)
@@ -288,9 +300,19 @@ Trân trọng,
 Ban Điều Hành Hệ Thống Quản Lý Đặt Lịch Y Tế Trực Tuyến.
 """
                 with st.spinner("📧 Đang tiến hành gửi Gmail thật, vui lòng chờ..."):
-                    if send_real_gmail(receiver_email_input, subject, body):
-                        st.balloons()
-                        st.success(f"📧 Thư xác nhận kèm khoảng cách lộ trình thực tế đã gửi tới: {receiver_email_input}")
+                    sent_email = send_real_gmail(receiver_email_input, subject, body)
+
+                if sent_email:
+                    st.balloons()
+                    st.success(f"📧 Thư xác nhận kèm khoảng cách lộ trình thực tế đã gửi tới: {receiver_email_input}")
+                else:
+                    if is_email_configured():
+                        st.error("⚠️ Không thể gửi email xác nhận. Vui lòng kiểm tra cấu hình Email.")
+                    else:
+                        st.info(
+                            "ℹ️ Lịch hẹn đã được tạo nhưng chức năng gửi email chưa được cấu hình. "
+                            "Vui lòng thêm biến môi trường EMAIL_SENDER và EMAIL_PASSWORD."
+                        )
             else:
                 st.error("⚠️ Khung giờ của bác sĩ này tại cơ sở đã kín lịch! Vui lòng chọn mốc thời gian khác.")
 
