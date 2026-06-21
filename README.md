@@ -1,31 +1,26 @@
-# Hệ thống Đặt Lịch Khám Bệnh
+# Ứng dụng Streamlit đặt lịch khám bệnh
 
-Ứng dụng Streamlit này cho phép chọn bệnh viện, bác sĩ, đặt lịch và gửi email xác nhận.
+Ứng dụng chính là `web_app.py`.
 
-## Chạy trên GitHub
+## Chạy nhanh tại máy
 
-1. Đẩy mã nguồn lên GitHub.
-2. GitHub Actions sẽ chạy kiểm tra ngữ pháp Python mỗi khi push/pull request.
-3. Nếu bạn muốn triển khai lên Streamlit Cloud hoặc dịch vụ tương tự, hãy sử dụng `requirements.txt`.
+1. Kích hoạt virtualenv (nếu chưa có):
+   - Windows: `.venv\Scripts\activate.bat`
+   - macOS/Linux: `source .venv/bin/activate`
+2. Cài thư viện:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Chạy ứng dụng:
+   ```bash
+   streamlit run web_app.py --server.address 0.0.0.0 --server.port 8501
+   ```
 
-## Cấu hình email
+Sau đó mở trình duyệt vào `http://localhost:8501` hoặc `http://<ĐỊA_CHỈ_IP_CỦA_BẠN>:8501`.
 
-Không lưu mật khẩu trong mã nguồn. Thay vào đó, thiết lập biến môi trường:
+---
 
-- `EMAIL_SENDER`: địa chỉ Gmail gửi đi
-- `EMAIL_PASSWORD`: mật khẩu ứng dụng Gmail
+## Ghi chú
 
-Ví dụ khi chạy local:
-
-```powershell
-$env:EMAIL_SENDER = "your@gmail.com"
-$env:EMAIL_PASSWORD = "app-password"
-streamlit run web_app.py
-```
-
-## Chạy local
-
-```powershell
-pip install -r requirements.txt
-streamlit run web_app.py
-```
+- `index.html` tự động chuyển hướng tới `http://192.168.1.32:8501` khi click link repo trên GitHub.
+- Repo chỉ chạy bằng `web_app.py` (Streamlit app).
