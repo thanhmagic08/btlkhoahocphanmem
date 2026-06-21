@@ -15,8 +15,8 @@ import streamlit.components.v1 as components
 # =========================================================================
 # ⚠️ CẤU HÌNH GMAIL GỬI TIN TRÊN GITHUB/STREAMLIT CLOUD
 # =========================================================================
-SENDER_EMAIL = os.environ.get("EMAIL_SENDER", "").strip()
-SENDER_PASSWORD = os.environ.get("EMAIL_PASSWORD", "").strip()
+SENDER_EMAIL = st.secrets.get("EMAIL_SENDER", os.environ.get("EMAIL_SENDER", "")).strip()
+SENDER_PASSWORD = st.secrets.get("EMAIL_PASSWORD", os.environ.get("EMAIL_PASSWORD", "")).strip()
 
 
 def is_email_configured():
@@ -111,6 +111,12 @@ with st.sidebar:
     st.markdown("### 🏥 CỔNG THÔNG TIN Y TẾ")
     st.write("Hệ thống đặt lịch tự động kết hợp tìm kiếm đường đi thông minh.")
     st.info("💡 **Mẹo:** Bạn có thể click chuột vào bất kỳ vị trí nào trên bản đồ bên phải để chọn vị trí nhà của bạn. Hệ thống sẽ tự vẽ tuyến đường đi đến bệnh viện!")
+    
+    # Cảnh báo về cấu hình email
+    if not is_email_configured():
+        st.warning("⚠️ **Chức năng gửi email chưa được cấu hình.** Vui lòng đặt biến môi trường EMAIL_SENDER và EMAIL_PASSWORD để gửi thư xác nhận lịch hẹn.")
+    else:
+        st.success("✅ **Chức năng gửi email đã được cấu hình.** Bệnh nhân sẽ nhận thư xác nhận lịch hẹn.")
 
 # -------------------------------------------------------------------------
 # 2. KẾT QUẢ TÌM KIẾM & BẢN ĐỒ LỘ TRÌNH
