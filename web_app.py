@@ -10,6 +10,7 @@ from email.mime.multipart import MIMEMultipart
 import folium
 from streamlit_folium import st_folium
 import math
+import streamlit.components.v1 as components
 
 # =========================================================================
 # ⚠️ CẤU HÌNH GMAIL GỬI TIN TRÊN GITHUB/STREAMLIT CLOUD
@@ -75,11 +76,16 @@ if 'initialized' not in st.session_state:
     4,Phòng khám Ba Đình,12 Kim Mã - Ba Đình,4.1,21.0315,105.8242"""
     
     doctors_data = """id,name,specialty,clinic_id,symptoms_handled
-    101,Bác sĩ Nguyễn Văn An,Nhi khoa,1,sốt ho sổ mũi biếng ăn
-    102,Bác sĩ Trần Thị Bình,Tim mạch,2,đau ngực khó thở chóng mặt
-    103,Bác sĩ Lê Hoàng Cường,Da liễu,3,ngứa phát ban mụn nhọt
-    104,Bác sĩ Phạm Minh Dung,Nhi khoa,3,sốt ho tiêu chảy
-    105,Bác sĩ Vũ Văn Em,Cơ xương khớp,4,đau lưng mỏi gối"""
+    101,Bác sĩ Nguyễn Văn An,Nhi khoa,1,sốt,ho,sổ mũi,biếng ăn
+    102,Bác sĩ Trần Thị Bình,Tim mạch,2,đau ngực,khó thở,chóng mặt
+    103,Bác sĩ Lê Hoàng Cường,Da liễu,3,ngứa,phát ban,mụn nhọt
+    104,Bác sĩ Phạm Minh Dung,Nhi khoa,3,sốt,tiêu chảy
+    105,Bác sĩ Vũ Văn Em,Cơ xương khớp,4,đau lưng,mỏi gối
+    106,Bác sĩ Hoàng Thị Hằng,Tiêu hóa,1,đau bụng,tiêu chảy,nôn ói
+    107,Bác sĩ Đỗ Minh Khoa,Hô hấp,2,ho,khó thở,viêm họng
+    108,Bác sĩ Nguyễn Thị Lan,Ngoại tổng quát,4,chấn thương,rách da,đau mạn tính
+    109,Bác sĩ Phan Văn Quý,Da liễu,2,mụn nhọt,ngứa,phát ban
+    110,Bác sĩ Trịnh Thị Mai,Nhi khoa,1,sốt,ho,biếng ăn"""
     
     appointments_data = """booking_id,patient_id,patient_name,phone,insurance_id,doctor_id,appointment_time,status
     BK-9952,BN-4122,Nguyễn Văn Thử,0987654321,GD40101221,101,2026-06-20 09:00:00,Đã xác nhận"""
@@ -88,6 +94,16 @@ if 'initialized' not in st.session_state:
     st.session_state.df_doctors = pd.read_csv(io.StringIO(doctors_data))
     st.session_state.df_appointments = pd.read_csv(io.StringIO(appointments_data))
     st.session_state.df_appointments['appointment_time'] = pd.to_datetime(st.session_state.df_appointments['appointment_time'])
+    # Chuẩn hóa kiểu dữ liệu để tránh lỗi so sánh hoặc xử lý tọa độ
+    if 'clinic_id' in st.session_state.df_doctors.columns:
+        st.session_state.df_doctors['clinic_id'] = pd.to_numeric(st.session_state.df_doctors['clinic_id'], errors='coerce')
+    if 'id' in st.session_state.df_clinics.columns:
+        st.session_state.df_clinics['id'] = pd.to_numeric(st.session_state.df_clinics['id'], errors='coerce')
+    for df in [st.session_state.df_clinics]:
+        for c in ['lat', 'lon']:
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors='coerce')
+
     st.session_state.initialized = True
 
 #專Thanh điều hướng bên cạnh
@@ -179,7 +195,14 @@ folium.PolyLine(
 ).add_to(m)
 
 # 5. Render bản đồ ra giao diện Web Streamlit
-map_data = st_folium(m, width="100%", height=450)
+try:
+    map_data = st_folium(m, width="100%", height=450)
+except Exception as e:
+    st.error(f"Lỗi hiển thị bản đồ: {e}. Hiển thị fallback tĩnh.")
+    # Fallback: hiển thị HTML của folium (ít tương tác hơn)
+    html_map = m._repr_html_()
+    components.html(html_map, height=450)
+    map_data = {}
 
 # Cập nhật tọa độ mới nếu người dùng bấm chọn một điểm khác trên bản đồ
 if map_data and map_data.get("last_clicked"):
@@ -223,7 +246,28 @@ with col1:
             selected_doc_name = st.selectbox("Chọn bác sĩ khám:", list(doc_options.keys()))
             selected_doctor_info = doc_options[selected_doc_name]
         else:
-            st.warning(f"Cơ sở hiện tại ({selected_clinic_row['name']}) chưa có bác sĩ chuyên khoa phù hợp với triệu chứng này.")
+            # Nếu không tìm thấy bác sĩ phù hợp trong cơ sở đang chọn, mở rộng tìm kiếm toàn hệ thống
+            other_matches = []
+            for _, doc_row in st.session_state.df_doctors.iterrows():
+                if any(smp.lower() in str(doc_row['symptoms_handled']).lower() for smp in selected_symptoms):
+                    other_matches.append(doc_row)
+
+            if other_matches:
+                df_other = pd.DataFrame(other_matches)
+                # Ghép tên cơ sở vào kết quả nếu có
+                if 'clinic_id' in df_other.columns:
+                    df_other = df_other.merge(st.session_state.df_clinics[['id', 'name']], left_on='clinic_id', right_on='id', how='left', suffixes=('', '_clinic'))
+                    df_other.rename(columns={'name_clinic': 'clinic_name'}, inplace=True)
+
+                st.info(f"Không có bác sĩ phù hợp tại {selected_clinic_row['name']}. Tuy nhiên tìm được bác sĩ phù hợp ở cơ sở khác:")
+                display_cols = ['name', 'specialty'] + (['clinic_name'] if 'clinic_name' in df_other.columns else [])
+                st.dataframe(df_other[display_cols], use_container_width=True, hide_index=True)
+
+                doc_options = {f"{row['name']} ({row['specialty']}) - {row.get('clinic_name', 'Khác')}": row for _, row in df_other.iterrows()}
+                selected_doc_name = st.selectbox("Chọn bác sĩ khám (có thể ở cơ sở khác):", list(doc_options.keys()))
+                selected_doctor_info = doc_options[selected_doc_name]
+            else:
+                st.warning(f"Cơ sở hiện tại ({selected_clinic_row['name']}) chưa có bác sĩ chuyên khoa phù hợp với triệu chứng này, và không tìm thấy bác sĩ tương tự trong hệ thống.")
     else:
         st.info("Vui lòng chọn triệu chứng để hệ thống tự động đề xuất bác sĩ tương ứng.")
 
