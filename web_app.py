@@ -349,7 +349,7 @@ Kính chúc quý bệnh nhân luôn mạnh khỏe!
 Trân trọng,
 Ban Điều Hành Hệ Thống Quản Lý Đặt Lịch Y Tế Trực Tuyến.
 """
-                with st.spinner("📧 Đang tiến hành gửi Gmail thật, vui lòng chờ..."):
+                with st.spinner("📧 Đang tiến hành gửi Gmail, vui lòng chờ..."):
                     sent_email = send_real_gmail(receiver_email_input, subject, body)
 
                 if sent_email:
