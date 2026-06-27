@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import io
 import random
 import smtplib
@@ -60,10 +61,15 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
 
 def normalize_appointment_datetime(selected_date, selected_time):
-    selected_dt = datetime.combine(selected_date, selected_time)
-    now = datetime.now()
-    if selected_dt <= now:
-        selected_dt = datetime.combine(selected_date + timedelta(days=1), selected_time)
+    server_tz = ZoneInfo("Asia/Ho_Chi_Minh")
+    # create naive datetime then localize to Vietnam timezone
+    naive = datetime.combine(selected_date, selected_time)
+    selected_dt = naive.replace(tzinfo=server_tz)
+    now_local = datetime.now(server_tz)
+    if selected_dt <= now_local:
+        next_day = selected_date + timedelta(days=1)
+        naive_next = datetime.combine(next_day, selected_time)
+        selected_dt = naive_next.replace(tzinfo=server_tz)
     return selected_dt
 
 
@@ -74,6 +80,26 @@ def format_timedelta(delta):
     hours, remainder = divmod(delta.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{days} ngày, {hours} giờ, {minutes} phút, {seconds} giây"
+
+
+def format_timedelta_hours_minutes(delta):
+    if delta.total_seconds() <= 0:
+        return "Đã đến thời gian khám"
+    total_seconds = int(delta.total_seconds())
+    total_minutes = total_seconds // 60
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    return f"{hours} giờ, {minutes} phút"
+
+
+def _to_local_dt(dt, tz_name="Asia/Ho_Chi_Minh"):
+    """Convert naive or timezone-aware datetime/pandas.Timestamp to local tz-aware datetime."""
+    if isinstance(dt, pd.Timestamp):
+        dt = dt.to_pydatetime()
+    tz = ZoneInfo(tz_name)
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=tz)
+    return dt.astimezone(tz)
 
 
 def render_live_countdown(target_datetime):
@@ -114,11 +140,11 @@ def render_live_countdown(target_datetime):
             if (el) el.innerHTML = "🟢 Đã đến thời gian khám";
             return;
           }}
-          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-          const secs = Math.floor((diff % (1000 * 60)) / 1000);
-          if (el) el.innerHTML = days + " ngày, " + hours + " giờ, " + mins + " phút, " + secs + " giây";
+          const totalSeconds = Math.floor(diff / 1000);
+          const totalMinutes = Math.floor(totalSeconds / 60);
+          const hoursOnly = Math.floor(totalMinutes / 60);
+          const minutesOnly = totalMinutes % 60;
+          if (el) el.innerHTML = hoursOnly + " giờ, " + minutesOnly + " phút";
         }}
         updateCountdown();
         setInterval(updateCountdown, 1000);
@@ -171,7 +197,13 @@ if 'initialized' not in st.session_state:
     st.session_state.df_clinics = pd.read_csv(io.StringIO(clinics_data))
     st.session_state.df_doctors = pd.read_csv(io.StringIO(doctors_data))
     st.session_state.df_appointments = pd.read_csv(io.StringIO(appointments_data))
+    # Make stored appointment_time timezone-aware (Vietnam timezone)
     st.session_state.df_appointments['appointment_time'] = pd.to_datetime(st.session_state.df_appointments['appointment_time'])
+    try:
+        st.session_state.df_appointments['appointment_time'] = st.session_state.df_appointments['appointment_time'].dt.tz_localize('Asia/Ho_Chi_Minh')
+    except Exception:
+        # if already tz-aware, convert to the desired tz
+        st.session_state.df_appointments['appointment_time'] = st.session_state.df_appointments['appointment_time'].dt.tz_convert('Asia/Ho_Chi_Minh')
     # Chuẩn hóa kiểu dữ liệu để tránh lỗi so sánh hoặc xử lý tọa độ
     if 'clinic_id' in st.session_state.df_doctors.columns:
         st.session_state.df_doctors['clinic_id'] = pd.to_numeric(st.session_state.df_doctors['clinic_id'], errors='coerce')
@@ -370,8 +402,15 @@ with col2:
         st.info(f"⚠️ Vì giờ bạn chọn đã qua trong ngày {appointment_date.strftime('%d/%m/%Y')}, hệ thống đã tự điều chỉnh sang ngày {desired_datetime.strftime('%d/%m/%Y')}.")
 
     st.caption("💡 Bộ đếm thời gian thực sẽ tự động cập nhật mỗi giây để hỗ trợ bạn theo dõi khung giờ đặt lịch.")
-    st.markdown(f"**Đếm ngược theo server hiện tại:** {format_timedelta(desired_datetime.to_pydatetime() - datetime.now())}")
-    render_live_countdown(desired_datetime.to_pydatetime())
+    # Compute server-side countdown in Asia/Ho_Chi_Minh so it matches client local representation
+    server_tz = ZoneInfo("Asia/Ho_Chi_Minh")
+    now_local = datetime.now(server_tz)
+    desired_local = datetime(
+        desired_datetime.year, desired_datetime.month, desired_datetime.day,
+        desired_datetime.hour, desired_datetime.minute, tzinfo=server_tz
+    )
+    st.markdown(f"**Đếm ngược theo server hiện tại:** {format_timedelta_hours_minutes(desired_local - now_local)}")
+    render_live_countdown(desired_local)
     
     if st.button("🚀 GỬI YÊU CẦU ĐẶT LỊCH & GỬI GMAIL"):
         if not patient_name_input:
@@ -405,20 +444,23 @@ with col2:
                 
                 st.success(f"🎉 Đặt lịch thành công! Mã đơn: {rand_booking}")
                 
-                countdown_text = ""
-                if isinstance(desired_datetime, pd.Timestamp):
-                    countdown_dt = desired_datetime.to_pydatetime()
-                else:
-                    countdown_dt = desired_datetime
+                # Compute countdown for email using server local timezone to match client
+                server_tz = ZoneInfo("Asia/Ho_Chi_Minh")
+                now_local_email = datetime.now(server_tz)
+                # desired_local was computed earlier for display; ensure we use it here
+                try:
+                    booking_target = desired_local
+                except NameError:
+                    booking_target = datetime(
+                        desired_datetime.year, desired_datetime.month, desired_datetime.day,
+                        desired_datetime.hour, desired_datetime.minute, tzinfo=server_tz
+                    )
 
-                delta = countdown_dt - datetime.now()
+                delta = booking_target - now_local_email
                 if delta.total_seconds() <= 0:
                     countdown_text = "Đã đến thời gian khám"
                 else:
-                    days = delta.days
-                    hours, remainder = divmod(delta.seconds, 3600)
-                    minutes, seconds = divmod(remainder, 60)
-                    countdown_text = f"{days} ngày, {hours} giờ, {minutes} phút, {seconds} giây"
+                    countdown_text = format_timedelta_hours_minutes(delta)
 
                 subject = f"🏥 [XÁC NHẬN] Thư Cảm Ơn Kết Quả Đặt Lịch - Mã Số {rand_booking}"
                 body = f"""Kính gửi quý bệnh nhân {patient_name_input},
