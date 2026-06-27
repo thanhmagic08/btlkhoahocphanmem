@@ -58,6 +58,40 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return round(R * c, 2)
 
+
+def render_live_countdown(target_datetime):
+    if not isinstance(target_datetime, datetime):
+        return
+
+    target_ts = int(target_datetime.timestamp() * 1000)
+    countdown_html = f"""
+    <div style="margin-top: 0.6rem; padding: 0.8rem 1rem; border: 1px solid #d0ebff; border-radius: 10px; background: linear-gradient(90deg, #f8fbff 0%, #eef6ff 100%);">
+      <div style="font-weight: 700; color: #1864ab; margin-bottom: 0.25rem;">⏳ Bộ đếm thời gian thực</div>
+      <div id="live-countdown" style="font-size: 1rem; color: #0b7285; font-weight: 600;"></div>
+      <div style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;">Thời gian đã chọn: {target_datetime.strftime('%H:%M %d/%m/%Y')}</div>
+    </div>
+    <script>
+      const targetTime = {target_ts};
+      const el = document.getElementById("live-countdown");
+      function updateCountdown() {{
+        const now = Date.now();
+        const diff = targetTime - now;
+        if (diff <= 0) {{
+          el.innerHTML = "🟢 Đã đến thời gian khám";
+          return;
+        }}
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+        el.innerHTML = `${{days}} ngày, ${{hours}} giờ, ${{mins}} phút, ${{secs}} giây`;
+      }}
+      updateCountdown();
+      setInterval(updateCountdown, 1000);
+    </script>
+    """
+    components.html(countdown_html, height=140)
+
 # =========================================================================
 # KHỔI TẠO ĐỐI TƯỢNG VÀ CƠ SỞ DỮ LIỆU HỆ THỐNG
 # =========================================================================
@@ -287,6 +321,9 @@ with col2:
     appointment_date = st.date_input("Chọn ngày khám:", datetime.now().date() + timedelta(days=1))
     appointment_time = st.time_input("Chọn giờ khám:", datetime.strptime("09:00", "%H:%M").time())
     desired_datetime = pd.to_datetime(f"{appointment_date} {appointment_time}")
+
+    st.caption("💡 Bộ đếm thời gian thực sẽ tự động cập nhật mỗi giây để hỗ trợ bạn theo dõi khung giờ đặt lịch.")
+    render_live_countdown(desired_datetime.to_pydatetime())
     
     if st.button("🚀 GỬI YÊU CẦU ĐẶT LỊCH & GỬI GMAIL"):
         if not patient_name_input:
