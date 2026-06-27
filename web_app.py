@@ -100,10 +100,10 @@ def render_live_countdown(target_datetime):
       const el = document.getElementById("live-countdown");
       const currentTimeEl = document.getElementById("current-time");
       const targetTimeEl = document.getElementById("target-time");
-      targetTimeEl.innerHTML = `Mốc hẹn (local): ${targetValue.toLocaleString()}`;
+      targetTimeEl.innerHTML = `Mốc hẹn (local): ${{targetValue.toLocaleString()}}`;
       function updateCountdown() {{
         const now = new Date();
-        currentTimeEl.innerHTML = `Giờ hiện tại (local): ${now.toLocaleString()}`;
+        currentTimeEl.innerHTML = `Giờ hiện tại (local): ${{now.toLocaleString()}}`;
         const diff = targetTime - now.getTime();
         if (diff <= 0) {{
           el.innerHTML = "🟢 Đã đến thời gian khám";
