@@ -59,6 +59,14 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     return round(R * c, 2)
 
 
+def normalize_appointment_datetime(selected_date, selected_time):
+    selected_dt = datetime.combine(selected_date, selected_time)
+    now = datetime.now()
+    if selected_dt <= now:
+        selected_dt = datetime.combine(selected_date + timedelta(days=1), selected_time)
+    return selected_dt
+
+
 def render_live_countdown(target_datetime):
     if not isinstance(target_datetime, datetime):
         return
@@ -318,9 +326,12 @@ with col2:
     phone_number = st.text_input("Số điện thoại liên hệ:", placeholder="Ví dụ: 0912345678")
     insurance_id = st.text_input("Mã số thẻ Bảo Hiểm Y Tế (Nếu có):")
     
-    appointment_date = st.date_input("Chọn ngày khám:", datetime.now().date() + timedelta(days=1))
+    appointment_date = st.date_input("Chọn ngày khám:", datetime.now().date())
     appointment_time = st.time_input("Chọn giờ khám:", datetime.strptime("09:00", "%H:%M").time())
-    desired_datetime = pd.to_datetime(f"{appointment_date} {appointment_time}")
+    desired_datetime = pd.to_datetime(normalize_appointment_datetime(appointment_date, appointment_time))
+
+    if desired_datetime.to_pydatetime().date() != appointment_date:
+        st.info(f"⚠️ Vì giờ bạn chọn đã qua trong ngày {appointment_date.strftime('%d/%m/%Y')}, hệ thống đã tự điều chỉnh sang ngày {desired_datetime.strftime('%d/%m/%Y')}.")
 
     st.caption("💡 Bộ đếm thời gian thực sẽ tự động cập nhật mỗi giây để hỗ trợ bạn theo dõi khung giờ đặt lịch.")
     render_live_countdown(desired_datetime.to_pydatetime())
