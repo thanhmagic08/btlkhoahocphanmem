@@ -80,45 +80,45 @@ def render_live_countdown(target_datetime):
     if not isinstance(target_datetime, datetime):
         return
 
-    target_year = target_datetime.year
-    target_month = target_datetime.month - 1
-    target_day = target_datetime.day
-    target_hour = target_datetime.hour
-    target_minute = target_datetime.minute
+        target_year = target_datetime.year
+        target_month = target_datetime.month - 1
+        target_day = target_datetime.day
+        target_hour = target_datetime.hour
+        target_minute = target_datetime.minute
 
-    countdown_html = f"""
-    <div style="margin-top: 0.6rem; padding: 0.8rem 1rem; border: 1px solid #d0ebff; border-radius: 10px; background: linear-gradient(90deg, #f8fbff 0%, #eef6ff 100%);">
-      <div style="font-weight: 700; color: #1864ab; margin-bottom: 0.25rem;">⏳ Bộ đếm thời gian thực</div>
-      <div id="live-countdown" style="font-size: 1rem; color: #0b7285; font-weight: 600;"></div>
-      <div id="current-time" style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;"></div>
-      <div id="target-time" style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;"></div>
-      <div style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;">Thời gian đã chọn: {target_datetime.strftime('%H:%M %d/%m/%Y')}</div>
-    </div>
-    <script>
-      const targetValue = new Date({target_year}, {target_month}, {target_day}, {target_hour}, {target_minute}, 0);
-      const targetTime = targetValue.getTime();
-      const el = document.getElementById("live-countdown");
-      const currentTimeEl = document.getElementById("current-time");
-      const targetTimeEl = document.getElementById("target-time");
-      targetTimeEl.innerHTML = `Mốc hẹn (local): ${{targetValue.toLocaleString()}}`;
-      function updateCountdown() {{
-        const now = new Date();
-        currentTimeEl.innerHTML = `Giờ hiện tại (local): ${{now.toLocaleString()}}`;
-        const diff = targetTime - now.getTime();
-        if (diff <= 0) {{
-          el.innerHTML = "🟢 Đã đến thời gian khám";
-          return;
-        }}
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const secs = Math.floor((diff % (1000 * 60)) / 1000);
-        el.innerHTML = `${{days}} ngày, ${{hours}} giờ, ${{mins}} phút, ${{secs}} giây`;
-      }}
-      updateCountdown();
-      setInterval(updateCountdown, 1000);
-    </script>
-    """
+        countdown_html = f"""
+        <div style="margin-top: 0.6rem; padding: 0.8rem 1rem; border: 1px solid #d0ebff; border-radius: 10px; background: linear-gradient(90deg, #f8fbff 0%, #eef6ff 100%);">
+            <div style="font-weight: 700; color: #1864ab; margin-bottom: 0.25rem;">⏳ Bộ đếm thời gian thực</div>
+            <div id="live-countdown" style="font-size: 1rem; color: #0b7285; font-weight: 600;"></div>
+            <div id="current-time" style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;"></div>
+            <div id="target-time" style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;"></div>
+            <div style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;">Thời gian đã chọn: {target_datetime.strftime('%H:%M %d/%m/%Y')}</div>
+        </div>
+        <script>
+            const targetValue = new Date({target_year}, {target_month}, {target_day}, {target_hour}, {target_minute}, 0);
+            const targetTime = targetValue.getTime();
+            const el = document.getElementById("live-countdown");
+            const currentTimeEl = document.getElementById("current-time");
+            const targetTimeEl = document.getElementById("target-time");
+            targetTimeEl.innerHTML = "Mốc hẹn (local): " + targetValue.toLocaleString();
+            function updateCountdown() {{
+                const now = new Date();
+                currentTimeEl.innerHTML = "Giờ hiện tại (local): " + now.toLocaleString();
+                const diff = targetTime - now.getTime();
+                if (diff <= 0) {{
+                    el.innerHTML = "🟢 Đã đến thời gian khám";
+                    return;
+                }}
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                el.innerHTML = days + " ngày, " + hours + " giờ, " + mins + " phút, " + secs + " giây";
+            }}
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        </script>
+        """
     components.html(countdown_html, height=140)
 
 # =========================================================================
