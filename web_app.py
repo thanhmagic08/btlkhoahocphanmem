@@ -79,7 +79,6 @@ def format_timedelta(delta):
 def render_live_countdown(target_datetime):
     if not isinstance(target_datetime, datetime):
         return
-
         target_year = target_datetime.year
         target_month = target_datetime.month - 1
         target_day = target_datetime.day
