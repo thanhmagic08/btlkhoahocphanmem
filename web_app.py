@@ -67,23 +67,44 @@ def normalize_appointment_datetime(selected_date, selected_time):
     return selected_dt
 
 
+def format_timedelta(delta):
+    if delta.total_seconds() <= 0:
+        return "Đã đến thời gian khám"
+    days = delta.days
+    hours, remainder = divmod(delta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{days} ngày, {hours} giờ, {minutes} phút, {seconds} giây"
+
+
 def render_live_countdown(target_datetime):
     if not isinstance(target_datetime, datetime):
         return
 
-    target_ts = int(target_datetime.timestamp() * 1000)
+    target_year = target_datetime.year
+    target_month = target_datetime.month - 1
+    target_day = target_datetime.day
+    target_hour = target_datetime.hour
+    target_minute = target_datetime.minute
+
     countdown_html = f"""
     <div style="margin-top: 0.6rem; padding: 0.8rem 1rem; border: 1px solid #d0ebff; border-radius: 10px; background: linear-gradient(90deg, #f8fbff 0%, #eef6ff 100%);">
       <div style="font-weight: 700; color: #1864ab; margin-bottom: 0.25rem;">⏳ Bộ đếm thời gian thực</div>
       <div id="live-countdown" style="font-size: 1rem; color: #0b7285; font-weight: 600;"></div>
+      <div id="current-time" style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;"></div>
+      <div id="target-time" style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;"></div>
       <div style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;">Thời gian đã chọn: {target_datetime.strftime('%H:%M %d/%m/%Y')}</div>
     </div>
     <script>
-      const targetTime = {target_ts};
+      const targetValue = new Date({target_year}, {target_month}, {target_day}, {target_hour}, {target_minute}, 0);
+      const targetTime = targetValue.getTime();
       const el = document.getElementById("live-countdown");
+      const currentTimeEl = document.getElementById("current-time");
+      const targetTimeEl = document.getElementById("target-time");
+      targetTimeEl.innerHTML = `Mốc hẹn (local): ${targetValue.toLocaleString()}`;
       function updateCountdown() {{
-        const now = Date.now();
-        const diff = targetTime - now;
+        const now = new Date();
+        currentTimeEl.innerHTML = `Giờ hiện tại (local): ${now.toLocaleString()}`;
+        const diff = targetTime - now.getTime();
         if (diff <= 0) {{
           el.innerHTML = "🟢 Đã đến thời gian khám";
           return;
@@ -334,6 +355,7 @@ with col2:
         st.info(f"⚠️ Vì giờ bạn chọn đã qua trong ngày {appointment_date.strftime('%d/%m/%Y')}, hệ thống đã tự điều chỉnh sang ngày {desired_datetime.strftime('%d/%m/%Y')}.")
 
     st.caption("💡 Bộ đếm thời gian thực sẽ tự động cập nhật mỗi giây để hỗ trợ bạn theo dõi khung giờ đặt lịch.")
+    st.markdown(f"**Đếm ngược theo server hiện tại:** {format_timedelta(desired_datetime.to_pydatetime() - datetime.now())}")
     render_live_countdown(desired_datetime.to_pydatetime())
     
     if st.button("🚀 GỬI YÊU CẦU ĐẶT LỊCH & GỬI GMAIL"):
