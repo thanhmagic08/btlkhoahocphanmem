@@ -110,42 +110,42 @@ def render_live_countdown(target_datetime):
     if isinstance(target_datetime, pd.Timestamp):
         target_datetime = target_datetime.to_pydatetime()
 
-        # Use ISO string including timezone offset so client JS parses correctly
-        target_iso = target_datetime.isoformat()
+    # Use ISO string including timezone offset so client JS parses correctly
+    target_iso = target_datetime.isoformat()
 
-        countdown_html = f"""
-        <div style="margin-top: 0.6rem; padding: 0.8rem 1rem; border: 1px solid #d0ebff; border-radius: 10px; background: linear-gradient(90deg, #f8fbff 0%, #eef6ff 100%);">
-            <div style="font-weight: 700; color: #1864ab; margin-bottom: 0.25rem;">⏳ Bộ đếm thời gian thực</div>
-            <div id="live-countdown" style="font-size: 1rem; color: #0b7285; font-weight: 600;"></div>
-            <div id="current-time" style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;"></div>
-        </div>
-        <script>
-            (function() {{
-                const targetValue = new Date("{target_iso}");
-                const targetTime = targetValue.getTime();
-                const el = document.getElementById("live-countdown");
-                const currentTimeEl = document.getElementById("current-time");
-                function updateCountdown() {{
-                    // show Vietnam time for the running clock
-                    const nowForDisplay = new Date().toLocaleString('vi-VN', {{ timeZone: 'Asia/Ho_Chi_Minh', hour12: false }});
-                    if (currentTimeEl) currentTimeEl.innerHTML = "Giờ hiện tại (VN): " + nowForDisplay;
-                    const now = Date.now();
-                    const diff = targetTime - now;
-                    if (diff <= 0) {{
-                        if (el) el.innerHTML = "🟢 Đã đến thời gian khám";
-                        return;
-                    }}
-                    const totalSeconds = Math.floor(diff / 1000);
-                    const totalMinutes = Math.floor(totalSeconds / 60);
-                    const hoursOnly = Math.floor(totalMinutes / 60);
-                    const minutesOnly = totalMinutes % 60;
-                    if (el) el.innerHTML = hoursOnly + " giờ, " + minutesOnly + " phút";
+    countdown_html = f"""
+    <div style="margin-top: 0.6rem; padding: 0.8rem 1rem; border: 1px solid #d0ebff; border-radius: 10px; background: linear-gradient(90deg, #f8fbff 0%, #eef6ff 100%);">
+        <div style="font-weight: 700; color: #1864ab; margin-bottom: 0.25rem;">⏳ Bộ đếm thời gian thực</div>
+        <div id="live-countdown" style="font-size: 1rem; color: #0b7285; font-weight: 600;"></div>
+        <div id="current-time" style="font-size: 0.9rem; color: #495057; margin-top: 0.2rem;"></div>
+    </div>
+    <script>
+        (function() {{
+            const targetValue = new Date("{target_iso}");
+            const targetTime = targetValue.getTime();
+            const el = document.getElementById("live-countdown");
+            const currentTimeEl = document.getElementById("current-time");
+            function updateCountdown() {{
+                // show Vietnam time for the running clock
+                const nowForDisplay = new Date().toLocaleString('vi-VN', {{ timeZone: 'Asia/Ho_Chi_Minh', hour12: false }});
+                if (currentTimeEl) currentTimeEl.innerHTML = "Giờ hiện tại (VN): " + nowForDisplay;
+                const now = Date.now();
+                const diff = targetTime - now;
+                if (diff <= 0) {{
+                    if (el) el.innerHTML = "🟢 Đã đến thời gian khám";
+                    return;
                 }}
-                updateCountdown();
-                setInterval(updateCountdown, 1000);
-            }})();
-        </script>
-        """
+                const totalSeconds = Math.floor(diff / 1000);
+                const totalMinutes = Math.floor(totalSeconds / 60);
+                const hoursOnly = Math.floor(totalMinutes / 60);
+                const minutesOnly = totalMinutes % 60;
+                if (el) el.innerHTML = hoursOnly + " giờ, " + minutesOnly + " phút";
+            }}
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        }})();
+    </script>
+    """
 
     try:
         components.html(countdown_html, height=140)
